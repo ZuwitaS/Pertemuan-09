@@ -1,64 +1,137 @@
 const express = require('express')
-const bodyParser = require('body-parser');
+const bodyParser = require('body-parser')
 const app = express();
-const mysql = require('mysql2');
+const mysql = require('mysql2')
 
+// parse aplication/json 
 app.use(bodyParser.json());
 
+//create database connection
 const conn = mysql.createConnection({
     host: 'localhost',
     user: 'root',
     password: '',
-    database: 'crub_db'
+    database: 'crud_db'
 });
 
-conn.connect((err) => {
+//connect to database
+conn.connect((err) =>{
     if(err) throw err;
-    console.log("Mysql Connected...");
+    console.log('Mysql Connected...');
 });
 
-app.get('/api/products',(req,res) => {
-    let sql = "SELECT * FROM product";
-    let query = conn.query(sql, (err,results) => {
+//tampilkan semua data product
+app.get('/api/product', (req, res) => {
+    let sql = 'SELECT * FROM product';
+    let query = conn.query(sql, (err, results) =>{
         if(err) throw err;
-        res.send(JSON.stringify({"status": 200, "error": null, "response": results}));
+        res.send(JSON.stringify({'status': 200, 'error': null, 'response': results}));
     });
 });
 
-app.get("/api/products/:id",(req,res) => {
-    let sql = "SELECT * FROM product WHERE product_id="+req.params.id;
-    let query = conn.query(sql, (err, results) => {
+//tampilkan data product berdasarkan id
+app.get('/api/product/:id', (req, res) =>{
+    let sql = 'SELECT * FROM products WHERE product_id='+req.params.id;
+    let query = conn.query(sql, (err, results) =>{
         if(err) throw err;
-        res.send(JSON.stringify({"status": 200, "error": null, "response": results}));
+        res.send(JSON.stringify({'status': 200, 'error': null, 'response': results}))
+    });
+});
+
+//tambahkan data product baru
+app.post('/api/product', (req, res) =>{
+    let data = {product_name: req.body.product_name, product_price: req.body.product_price};
+    let sql = 'INSERT INTO products SET ?';
+    let query = conn.query(sql, data,(err, results) =>{
+        if(err) throw err;
+        res.send(JSON.stringify({'status': 200, 'error': null, 'response': 'insert data succes'}));
+    });
+});
+
+//edit data product berdasarkan id
+app.put('/api/product/:id', (req, res) =>{
+    let sql = "UPDATE products SET product_name'"+req.body.product_name+"', product_price='"+req.body.product_price+"' WHERE product_id="+req.params.id;
+    let query = conn.query(sql, (err, results) =>{
+        if(err) throw err;
+        res.send(JSON.stringify({'status': 200, 'error': null, 'response': 'Update data success'}));
+    });
+});
+
+//delete data product berdasarkan id
+app.delete('/api/product/:id', (req, res) =>{
+    let sql = "DELETE FROM products WHERE product_id="+req.params.id+"";
+    let query = conn.query(sql, (err, results)=>{
+        if(err) throw err;
+        res.send(JSON.stringify({'status': 200, 'error': null, 'response': 'Delete data succes'}));
+    });
+});
+
+
+app.get('/api/comment', (req, res) => {
+    let sql = "SELECT * FROM comment ORDER BY comment_created DESC LIMIT 5"
+    let query = conn.query(sql, (err, results) => {
+        if (err) throw err
+        res.json(results)
     })
 })
 
-app.post('/api/products',(req, res) => {
-    let data = {product_name: req.body.product_name, product_price: req.body.product_price};
-    let sql = "INSERT INTO product SET ?";
-    let query = conn.query(sql, data,(err, results) => {
-        if(err) throw err;
-        res.send(JSON.stringify({"status": 200, "error": null, "response": "Insert Data Success"}));
-    });
-});
+// tampilkan data comment berdasarkan comment_id
+app.get('/api/comment/:id', (req, res) => {
+    let sql = "SELECT * FROM comment WHERE comment_id=" + req.params.id
+    let query = conn.query(sql, (err, results) => {
+        if (err) throw err
+        if (results.length === 0) {
+            res.statusCode = 404
+            res.end('ID Not Found')
+        }
+        else {
+            res.json(results)
+        }
+    })
+})
 
-app.put('/api/products/:id',(req,res) => {
-    let sql = "UPDATE product SET product_name='"+req.body.product_name+"', product price='"+req.body.product_price+"' WHERE product_id="+req.params.id;
+// tampilkan data comment berdasarkan cust_id diurutkan terbaru
+app.get('/api/comment/customer/:id', (req, res) => {
+    let sql = "SELECT * FROM comment WHERE cust_id=" + req.params.id + " ORDER BY comment_created DESC"
+    let query = conn.query(sql, (err, results) => {
+        if (err) throw err
+        if (results.length === 0) {
+            res.statusCode = 404
+            res.end('ID Not Found')
+        }
+        else {
+            res.json(results)
+        }
+    })
+})
+
+// tambahkan data comment baru
+app.post('/api/comment', (req, res) => {
+    let data = {
+        cust_id      : req.body.cust_id,
+        product_id   : req.body.product_id,
+        comment_text : req.body.comment_text
+    }
+    let sql = "INSERT INTO comment SET ?"
+    let query = conn.query(sql, data, (err, results) => {
+        if (err) throw err
+        console.log(data);
+        res.json({"status" : "SUCCESS"})
+    })
+})
+
+
+// hapus data comment berdasarkan comment_id
+app.delete('/api/comment/:id', (req, res) => {
+    let sql = "DELETE FROM comment WHERE comment_id="+ req.params.id ;
     let query = conn.query(sql, (err, results) => {
         if(err) throw err;
-        res.send(JSON.stringify({"status": 200, "error": null, "response": "Update Data Success"}));
-    });
-});
-
-app.delete('/api/products/:id',(req,res) => {
-    let sql = "DELETE FROM product WHERE product_id="+req.params.id+"";
-    let query = conn.query(sql, (err, results) => {
-        if(err) throw err;
-        res.send(JSON.stringify({"status": 200, "error": null, "response": "Delete Data Success"}));
+        res.send({"status":"DELETED"})
     });
 });
 
 
+//server listening
 app.listen(3000, () =>{
-    console.log('Server Running')
+    console.log('Server started on port 3000...')
 })
